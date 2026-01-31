@@ -13,12 +13,33 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
+            // Identity
             $table->string('email')->unique();
-            $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->string('name');
+            $table->string('employee_id')->unique();
+
+            // Organization
+            $table->foreignId('department_id')->constrained()->restrictOnDelete();
+            $table->foreignId('role_id')->constrained()->restrictOnDelete();
+            $table->foreignId('reports_to')->nullable()->constrained('users')->nullOnDelete();
+
+            // Status
+            $table->boolean('is_active')->default(true);
+
+            // Laravel defaults
+            $table->timestamp('email_verified_at')->nullable();
             $table->rememberToken();
+
             $table->timestamps();
+            $table->softDeletes();
+        });
+
+        // Indexes
+        Schema::table('users', function (Blueprint $table) {
+            $table->index(['department_id', 'deleted_at'], 'idx_users_department');
+            $table->index(['reports_to', 'deleted_at'], 'idx_users_reports_to');
+            $table->index(['email', 'deleted_at'], 'idx_users_email');
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {
