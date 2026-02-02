@@ -2,6 +2,11 @@
 
 namespace App\Providers;
 
+use App\Models\ApprovalStep;
+use App\Models\Document;
+use App\Policies\ApprovalStepPolicy;
+use App\Policies\DocumentPolicy;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -19,6 +24,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        Gate::policy(Document::class, DocumentPolicy::class);
+        Gate::policy(ApprovalStep::class, ApprovalStepPolicy::class);
     }
 }
