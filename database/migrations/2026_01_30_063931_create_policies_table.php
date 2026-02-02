@@ -35,7 +35,7 @@ return new class extends Migration
             CHECK (
                 policy_type IN(
                     'quota_limit',
-                    'amount_treshold',
+                    'amount_threshold',
                     'time_based',
                     'custom'
                 )

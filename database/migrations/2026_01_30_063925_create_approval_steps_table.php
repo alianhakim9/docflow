@@ -41,8 +41,9 @@ return new class extends Migration
 
             $table->text('comments')->nullable();
 
-            $table->integer('sla_houres')->nullable();
+            $table->integer('sla_hours')->nullable();
             $table->timestamp('due_at')->nullable();
+            $table->timestamps();
         });
 
         DB::statement("
