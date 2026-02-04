@@ -65,6 +65,87 @@ class ApprovalService
         return $approvalStep;
     }
 
+    public function reject(
+        ApprovalStep $approvalStep,
+        User $user,
+        string $comments
+    ): ApprovalStep {
+        $approvalStep->update([
+            'status' => ApprovalStatus::REJECTED,
+            'action_taken_at' => now(),
+            'action_taken_by' => $user->id,
+            'comments' => $comments,
+        ]);
+
+        $approvalStep->document->update([
+            'status' => DocumentStatus::REJECTED,
+            'completed_at' => now(),
+        ]);
+
+        $approvalStep->document->approvalSteps()
+            ->where('status', ApprovalStatus::PENDING->value)
+            ->where('id', '!=', $approvalStep->id)
+            ->update(['status' => ApprovalStatus::SKIPPED->value]);
+
+        AuditLog::log(
+            'document.rejected',
+            $approvalStep->document,
+            $user,
+            ['status' => DocumentStatus::PENDING->value],
+            ['status' => DocumentStatus::REJECTED->value, 'comments' => $comments]
+        );
+
+        return $approvalStep;
+    }
+
+    public function return_(
+        ApprovalStep $approvalStep,
+        User $user,
+        string $comments
+    ): ApprovalStep {
+        $approvalStep->update([
+            'status' => ApprovalStatus::RETURNED,
+            'action_taken_at' => now(),
+            'action_taken_by' => $user->id,
+            'comments' => $comments
+        ]);
+
+        $approvalStep->document->update([
+            'status' => DocumentStatus::RETURNED
+        ]);
+
+        $approvalStep->document->approvalSteps()
+            ->where('status', ApprovalStatus::PENDING->value)
+            ->where('id', '!=', $approvalStep->id)
+            ->update(['status' => ApprovalStatus::SKIPPED->value]);
+
+        return $approvalStep;
+    }
+
+    public function delegate(
+        ApprovalStep $approvalStep,
+        User $user,
+        int $delegateTo,
+        ?string $endDate = null
+    ): ApprovalStep {
+        $approvalStep->update([
+            'delegate_from_id' => $user->id,
+            'approver_id' => $delegateTo,
+            'delegation_start_date' => now()->toDateString(),
+            'delegation_end_date' => $endDate ?? now()->addDays(7)->toDateString(),
+        ]);
+
+        AuditLog::log(
+            'approval.delegated',
+            $approvalStep->document,
+            $user,
+            ['approver_id' => $user->id],
+            ['approver_id' => $delegateTo, 'delegated_from_id' => $user->id]
+        );
+
+        return $approvalStep;
+    }
+
     private function advanceWorkflow(Document $document): void
     {
         $pendingSteps = $document->approvalSteps()
