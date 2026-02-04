@@ -1,6 +1,7 @@
 <?php
 
 use App\Exceptions\PolicyException;
+use App\Http\Middleware\AddRequestId;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -21,6 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'auth' =>  Authenticate::class,
             'sanctum' => EnsureFrontendRequestsAreStateful::class,
         ]);
+        $middleware->append(AddRequestId::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (PolicyException $e, $request) {
