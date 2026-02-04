@@ -23,6 +23,8 @@ class Document extends Model
         'status',
         'submitted_at',
         'completed_at',
+        'created_at',
+        'updated_at'
     ];
 
     protected $casts = [
@@ -30,6 +32,8 @@ class Document extends Model
         'status' => DocumentStatus::class,
         'submitted_at' => 'datetime',
         'completed_at' => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
     // Relationships
