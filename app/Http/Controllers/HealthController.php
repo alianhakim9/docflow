@@ -146,4 +146,34 @@ class HealthController extends Controller
 
         return $val;
     }
+
+    /**
+     * GET /health/cache-stats
+     * Statistik cache (hanya untuk development/monitoring)
+     */
+    public function cacheStats(): JsonResponse
+    {
+        $stats = [
+            'driver' => config('cache.default'),
+            'prefix' => config('cache.prefix'),
+        ];
+
+        // Kalau pakai Redis, ambil stats
+        if (config('cache.default') === 'redis') {
+            try {
+                $redis = Redis::connection()->client();
+                $info = $redis->info();
+
+                $stats['redis'] = [
+                    'used_memory_human' => $info['used_memory_human'] ?? 'N/A',
+                    'connected_clients' => $info['connected_clients'] ?? 0,
+                    'total_keys' => $redis->dbsize(),
+                ];
+            } catch (\Exception $e) {
+                $stats['redis'] = 'unavailable';
+            }
+        }
+
+        return response()->json(['data' => $stats]);
+    }
 }

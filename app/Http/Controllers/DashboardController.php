@@ -7,28 +7,35 @@ use App\Models\ApprovalStep;
 use App\Models\Document;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use App\Services\CacheService;
 
 class DashboardController extends Controller
 {
+    public function __construct(
+        private CacheService $cacheService,
+    ) {}
+
     public function stats(Request $request): JsonResponse
     {
         $user = $request->user();
 
-        if ($user->isAdmin()) {
-            return response()->json([
-                'data' => $this->getAdminStats()
-            ]);
-        }
+        $stats = $this->cacheService->getUserCache(
+            $user->id,
+            'dashboard:stats',
+            function () use ($user) {
+                if ($user->isAdmin()) {
+                    return $this->getAdminStats();
+                }
 
-        if ($user->isManager()) {
-            return response()->json([
-                'data' => $this->getManagerStats($user)
-            ]);
-        }
+                if ($user->isManager()) {
+                    return $this->getManagerStats($user);
+                }
 
-        return response()->json([
-            'data' => $this->getStaffStats($user)
-        ]);
+                return $this->getStaffStats($user);
+            }
+        );
+
+        return response()->json(['data' => $stats]);
     }
 
     public function myDocuments(Request $request): JsonResponse

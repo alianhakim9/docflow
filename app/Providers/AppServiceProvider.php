@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Models\ApprovalStep;
 use App\Models\Document;
+use App\Observers\DocumentObserver;
 use App\Policies\ApprovalStepPolicy;
 use App\Policies\DocumentPolicy;
 use Illuminate\Database\Events\QueryExecuted;
@@ -40,5 +41,7 @@ class AppServiceProvider extends ServiceProvider
                 ]);
             }
         });
+
+        Document::observe(DocumentObserver::class);
     }
 }

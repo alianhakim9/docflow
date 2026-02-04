@@ -14,7 +14,8 @@ class DocumentService
 {
     public function __construct(
         private PolicyService $policyService,
-        private ApprovalService $approvalService
+        private ApprovalService $approvalService,
+        private CacheService $cacheService
     ) {}
 
     public function getDocuments(
@@ -70,18 +71,24 @@ class DocumentService
 
     public function getDocument(int $documentId): Document
     {
-        return Document::with([
-            'submitter:id,name,email',
-            'documentType:id,name,slug',
-            'approvalSteps' => function ($q) {
-                $q->orderBy('sequence')
-                    ->with('approver:id,name,email');
+        return $this->cacheService->getQueryCache(
+            "document:{$documentId}",
+            function () use ($documentId) {
+                return Document::with([
+                    'submitter:id,name,email',
+                    'documentType:id,name,slug',
+                    'approvalSteps' => function ($q) {
+                        $q->orderBy('sequence')
+                            ->with('approver:id,name,email');
+                    },
+                    'attachments',
+                    'auditLogs' => function ($q) {
+                        $q->orderByDesc('created_at');
+                    },
+                ])->findOrFail($documentId);
             },
-            'attachments',
-            'auditLogs' => function ($q) {
-                $q->orderByDesc('created_at');
-            }
-        ])->findOrFail($documentId);
+            300 // 5 menit
+        );
     }
 
     public function create(
@@ -105,6 +112,10 @@ class DocumentService
             'status' => DocumentStatus::DRAFT->value,
         ]);
 
+        // Invalidate cache
+        $this->cacheService->forgetUserCache($user->id, 'documents');
+        $this->cacheService->forgetDashboardCache($user->id);
+
         return $document;
     }
 
@@ -126,6 +137,9 @@ class DocumentService
             'title' => $document->title,
             'data' => $document->data,
         ]);
+
+        // Invalidate cache
+        $this->cacheService->forgetDocumentCache($document->id);
 
         return $document;
     }
@@ -152,6 +166,11 @@ class DocumentService
             ['status' => DocumentStatus::PENDING->value]
         );
 
+        // Invalidate cache
+        $this->cacheService->forgetDocumentCache($document->id);
+        $this->cacheService->forgetUserCache($document->submitter_id);
+        $this->cacheService->forgetDashboardCache($document->submitter_id);
+
         return $document;
     }
 
@@ -175,6 +194,10 @@ class DocumentService
             ['status' => DocumentStatus::PENDING->value],
             ['status' => DocumentStatus::CANCELLED->value]
         );
+
+        // Invalidate cache
+        $this->cacheService->forgetDocumentCache($document->id);
+        $this->cacheService->forgetDashboardCache($document->submitter_id);
 
         return $document;
     }
