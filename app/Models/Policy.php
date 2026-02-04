@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\PolicyType;
+use App\Exceptions\PolicyException;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -112,7 +113,10 @@ class Policy extends Model
 
         // Check max per request
         if ($requestedDays > $maxPerRequest) {
-            throw new \Exception("Maksimal {$maxPerRequest} hari per pangajuan");
+            throw new PolicyException(
+                "Maksimal {$maxPerRequest} hari per pengajuan.",
+                'MAX_DAYS_EXCEEDED'
+            );
         }
 
         // Calculate used quota this year
@@ -127,7 +131,10 @@ class Policy extends Model
         $remainingQuota = $maxPerYear - $usedDays;
 
         if ($requestedDays > $remainingQuota) {
-            throw new \Exception("Kuota tidak mencukupi, Sisa: {$remainingQuota} hari");
+            throw new PolicyException(
+                "Kuota tidak mencukupi. Sisa {$remainingQuota} hari.",
+                'INSUFFICIENT_QUOTA'
+            );
         }
 
         return true;
@@ -160,7 +167,10 @@ class Policy extends Model
             $daysUntilStart = now()->diffInDays(Carbon::parse($starDate), false);
 
             if ($daysUntilStart < $minNoticeDays) {
-                throw new \Exception("Minimal pengajuan {$minNoticeDays} hari sebelum tanggal mulai");
+                throw new PolicyException(
+                    "Minimal pengajuan {$minNoticeDays} hari sebelum tanggal mulai.",
+                    'INSUFFICIENT_NOTICE'
+                );
             }
         }
 
